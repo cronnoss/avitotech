@@ -2,8 +2,10 @@ package sqlstorage
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
+	"github.com/cronnoss/avitotech/internal/model"
 	_ "github.com/jackc/pgx/stdlib" // pgx driver
 	"github.com/jmoiron/sqlx"
 )
@@ -33,5 +35,41 @@ func (s *Storage) Connect(ctx context.Context) error {
 func (s *Storage) Close(ctx context.Context) error {
 	s.db.Close()
 	ctx.Done()
+	return nil
+}
+
+func stringNull(s string) sql.NullString {
+	if len(s) == 0 {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: s, Valid: true}
+}
+
+func (s *Storage) TopUp(ctx context.Context, b *model.Balance) error {
+	var userExists bool
+	err := s.db.QueryRowxContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", b.UserID).Scan(&userExists)
+	if err != nil {
+		return fmt.Errorf("failed to check user existence: %w", err)
+	}
+	if !userExists {
+		return fmt.Errorf("user with ID %d does not exist", b.UserID)
+	}
+
+	query := `INSERT INTO balances (user_id, amount, currency) VALUES ($1, $2, $3)`
+	rows, err := s.db.QueryxContext(ctx, query, b.UserID, b.Amount, stringNull(b.Currency))
+	if err != nil {
+		return fmt.Errorf("failed to top up: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&b.UserID)
+		if err != nil {
+			return fmt.Errorf("failed to rows.Scan: %w", err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed to rows.Err: %w", err)
+	}
+
 	return nil
 }

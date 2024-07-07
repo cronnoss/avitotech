@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cronnoss/avitotech/internal/logger"
+	"github.com/cronnoss/avitotech/internal/model"
 	"github.com/cronnoss/avitotech/internal/server"
 	"github.com/cronnoss/avitotech/internal/storage"
 	"golang.org/x/sync/errgroup"
@@ -33,11 +34,32 @@ type Avitotech struct {
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
+	TopUp(context.Context, *model.Balance) error
 }
 
 type Server interface {
 	Start(context.Context) error
 	Stop(context.Context) error
+}
+
+func (a *Avitotech) CheckingBalance(b *model.Balance, checkID bool) interface{} {
+	if checkID && b.UserID == 0 {
+		return fmt.Errorf("%w(UserID is zero)", server.ErrUserID)
+	}
+	if b.Currency == "" {
+		return fmt.Errorf("%w(Currency is %v)", server.ErrCurrency, b.Currency)
+	}
+	return nil
+}
+
+func (a *Avitotech) TopUp(ctx context.Context, b *model.Balance) error {
+	if err := a.CheckingBalance(b, false); err != nil {
+		return err.(error)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.TopUp(ctx, b)
 }
 
 func (a *Avitotech) Close(ctx context.Context) error {

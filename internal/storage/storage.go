@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cronnoss/avitotech/internal/model"
 	sqlstorage "github.com/cronnoss/avitotech/internal/storage/sql"
 )
 
@@ -16,6 +17,7 @@ type Conf struct {
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
+	TopUp(context.Context, *model.Balance) error
 }
 
 func NewStorage(conf Conf) Storage {

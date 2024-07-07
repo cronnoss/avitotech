@@ -31,10 +31,13 @@ linters-settings:
           - github.com/cronnoss/avitotech/internal/storage
           - github.com/cronnoss/avitotech/internal/storage/sql
           - github.com/cronnoss/avitotech/internal/app
+          - github.com/cronnoss/avitotech/internal/model
           - golang.org/x/sync/errgroup
           - github.com/BurntSushi/toml
           - encoding/json
           - github.com/jackc/pgx/stdlib
+          - github.com/shopspring/decimal
+          - database/sql
 
 issues:
   exclude-rules:

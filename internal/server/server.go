@@ -1,12 +1,17 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
+
+	"github.com/cronnoss/avitotech/internal/model"
 )
 
 var (
-// TODO make errors
+	ErrUserID   = errors.New("wrong UserID")
+	ErrCurrency = errors.New("wrong Currency")
 )
 
 //go:generate mockery --name Logger
@@ -20,7 +25,12 @@ type Logger interface {
 
 //go:generate mockery --name Application
 type Application interface {
-	// TODO make interface
+	// GetBalance(ctx context.Context, userID int64, currency string) (decimal.Decimal, error)
+	// GetTransactions(ctx context.Context, userID int64, currency string, sort string) ([]model.Transaction, error)
+	TopUp(context.Context, *model.Balance) error
+	// Debit(ctx context.Context, userID int64, amount decimal.Decimal, currency string) error
+	// Transfer(ctx context.Context,
+	// 	fromUserID int64, toUserID int64, amount decimal.Decimal, currency string) (model.TransferResult, error)
 }
 
 func Exitfail(msg string) {
