@@ -1,0 +1,11 @@
+#AvitoTech config
+[logger]
+level = "DEBUG"
+
+[http-server]
+port = "8090"
+host = "0.0.0.0"
+
+[storage]
+db = "sql"
+dsn = "postgresql://postgres:postgres@postgres:5432/avitotech?sslmode=disable"

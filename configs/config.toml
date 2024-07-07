@@ -1,0 +1,10 @@
+[logger]
+level = "DEBUG"
+
+[http-server]
+host = "localhost"
+port = "8090"
+
+[storage]
+db = "sql"
+dsn = "postgresql://root:secretkey@localhost:5432/avitotech?sslmode=disable"

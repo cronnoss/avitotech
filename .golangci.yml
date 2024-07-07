@@ -1,0 +1,94 @@
+run:
+  tests: true
+  build-tags:
+    - bench
+    - !bench
+
+linters-settings:
+  funlen:
+    lines: 150
+    statements: 80
+  depguard:
+    rules:
+      main:
+        allow:
+          - github.com/jmoiron/sqlx
+          - errors
+          - io
+          - fmt
+          - os
+          - strings
+          - sync
+          - context
+          - net/http
+          - syscall
+          - time
+          - net
+          - flag
+          - path/filepath
+          - github.com/cronnoss/avitotech/internal/logger
+          - github.com/cronnoss/avitotech/internal/server
+          - github.com/cronnoss/avitotech/internal/storage
+          - github.com/cronnoss/avitotech/internal/storage/sql
+          - github.com/cronnoss/avitotech/internal/app
+          - golang.org/x/sync/errgroup
+          - github.com/BurntSushi/toml
+          - encoding/json
+          - github.com/jackc/pgx/stdlib
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - dupl
+        - gocyclo
+        - gosec
+
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - depguard
+    - dogsled
+    - dupl
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - funlen
+    - gci
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - gofumpt
+    - goheader
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - makezero
+    - misspell
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - stylecheck
+    - tagliatelle
+    - thelper
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
