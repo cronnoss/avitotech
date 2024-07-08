@@ -11,10 +11,10 @@ CREATE TABLE users
 
 CREATE TABLE balances
 (
-    balance_id SERIAL PRIMARY KEY,
-    user_id    INT REFERENCES users (id) ON DELETE CASCADE,
-    amount     NUMERIC(15, 2) NOT NULL,
-    currency   VARCHAR(10)    NOT NULL DEFAULT 'RUB'
+    id       SERIAL PRIMARY KEY,
+    user_id  INT REFERENCES users (id) ON DELETE CASCADE,
+    amount   NUMERIC(15, 2) NOT NULL,
+    currency VARCHAR(10)    NOT NULL DEFAULT 'RUB'
 );
 
 CREATE TABLE transactions
@@ -32,7 +32,7 @@ CREATE TABLE transfer_results
     from_user_id INT REFERENCES users (id) ON DELETE CASCADE,
     to_user_id   INT REFERENCES users (id) ON DELETE CASCADE,
     amount       NUMERIC(15, 2) NOT NULL,
-    currency     VARCHAR(10) NOT NULL DEFAULT 'RUB',
+    currency VARCHAR(10) NOT NULL DEFAULT 'RUB',
     status       VARCHAR(50)    NOT NULL,
     PRIMARY KEY (from_user_id, to_user_id, status)
 );

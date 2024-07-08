@@ -50,6 +50,21 @@ func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, data 
 	return nil
 }
 
+func (s *Server) GetBalance(w http.ResponseWriter, r *http.Request) {
+	var balance model.Balance
+	if err := s.helperDecode(r.Body, w, &balance); err != nil {
+		return
+	}
+	bal, err := s.app.GetBalance(r.Context(), &balance)
+	if err != nil {
+		s.log.Errorf("Can't get balance:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't get balance:%v\"}\n", err)))
+		return
+	}
+	w.Write([]byte(fmt.Sprintf("{\"balance\": \"%s\"}\n", bal)))
+}
+
 func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
 	var balance model.Balance
 	if err := s.helperDecode(r.Body, w, &balance); err != nil {
@@ -81,10 +96,10 @@ func (s *Server) Start(ctx context.Context) error {
 			w.Write([]byte("OK readiness\n"))
 		}))))
 
-	/*mux.Handle("/balance", midLogger.setCommonHeadersMiddleware(
+	mux.Handle("/balance", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.GetBalance))))
-	mux.Handle("/transaction", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.GetTransactions))))*/
+	/*mux.Handle("/transaction", midLogger.setCommonHeadersMiddleware(
+	midLogger.loggingMiddleware(http.HandlerFunc(s.GetTransactions))))*/
 	mux.Handle("/top-up", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.TopUp))))
 	/*mux.Handle("/debit", midLogger.setCommonHeadersMiddleware(

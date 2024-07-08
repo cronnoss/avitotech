@@ -7,6 +7,7 @@ import (
 
 	"github.com/cronnoss/avitotech/internal/model"
 	sqlstorage "github.com/cronnoss/avitotech/internal/storage/sql"
+	"github.com/shopspring/decimal"
 )
 
 type Conf struct {
@@ -17,6 +18,7 @@ type Conf struct {
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
+	GetBalance(context.Context, *model.Balance) (decimal.Decimal, error)
 	TopUp(context.Context, *model.Balance) error
 }
 

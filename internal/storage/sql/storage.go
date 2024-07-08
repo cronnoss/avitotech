@@ -8,6 +8,7 @@ import (
 	"github.com/cronnoss/avitotech/internal/model"
 	_ "github.com/jackc/pgx/stdlib" // pgx driver
 	"github.com/jmoiron/sqlx"
+	"github.com/shopspring/decimal"
 )
 
 type Storage struct {
@@ -45,6 +46,18 @@ func stringNull(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: true}
 }
 
+func (s *Storage) GetBalance(ctx context.Context, b *model.Balance) (decimal.Decimal, error) {
+	var totalAmount decimal.Decimal
+	query := `SELECT SUM(amount) AS total_amount FROM balances WHERE user_id = $1 AND currency = $2 
+                                                 GROUP BY user_id, currency`
+	err := s.db.QueryRowxContext(ctx, query, b.UserID, stringNull(b.Currency)).Scan(&totalAmount)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("failed to get balance: %w", err)
+	}
+
+	return totalAmount, nil
+}
+
 func (s *Storage) TopUp(ctx context.Context, b *model.Balance) error {
 	var userExists bool
 	err := s.db.QueryRowxContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", b.UserID).Scan(&userExists)
@@ -55,7 +68,7 @@ func (s *Storage) TopUp(ctx context.Context, b *model.Balance) error {
 		return fmt.Errorf("user with ID %d does not exist", b.UserID)
 	}
 
-	query := `INSERT INTO balances (user_id, amount, currency) VALUES ($1, $2, $3)`
+	query := `INSERT INTO balances (user_id, amount, currency) VALUES ($1, $2, $3) RETURNING id`
 	rows, err := s.db.QueryxContext(ctx, query, b.UserID, b.Amount, stringNull(b.Currency))
 	if err != nil {
 		return fmt.Errorf("failed to top up: %w", err)

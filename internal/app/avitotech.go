@@ -13,6 +13,7 @@ import (
 	"github.com/cronnoss/avitotech/internal/model"
 	"github.com/cronnoss/avitotech/internal/server"
 	"github.com/cronnoss/avitotech/internal/storage"
+	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -34,6 +35,7 @@ type Avitotech struct {
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
+	GetBalance(context.Context, *model.Balance) (decimal.Decimal, error)
 	TopUp(context.Context, *model.Balance) error
 }
 
@@ -50,6 +52,16 @@ func (a *Avitotech) CheckingBalance(b *model.Balance, checkID bool) interface{} 
 		return fmt.Errorf("%w(Currency is %v)", server.ErrCurrency, b.Currency)
 	}
 	return nil
+}
+
+func (a *Avitotech) GetBalance(ctx context.Context, b *model.Balance) (decimal.Decimal, error) {
+	if err := a.CheckingBalance(b, false); err != nil {
+		return decimal.Zero, err.(error)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.GetBalance(ctx, b)
 }
 
 func (a *Avitotech) TopUp(ctx context.Context, b *model.Balance) error {

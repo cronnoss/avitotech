@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/cronnoss/avitotech/internal/model"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -25,7 +26,7 @@ type Logger interface {
 
 //go:generate mockery --name Application
 type Application interface {
-	// GetBalance(ctx context.Context, userID int64, currency string) (decimal.Decimal, error)
+	GetBalance(context.Context, *model.Balance) (decimal.Decimal, error)
 	// GetTransactions(ctx context.Context, userID int64, currency string, sort string) ([]model.Transaction, error)
 	TopUp(context.Context, *model.Balance) error
 	// Debit(ctx context.Context, userID int64, amount decimal.Decimal, currency string) error

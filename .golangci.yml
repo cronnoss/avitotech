@@ -47,6 +47,9 @@ issues:
         - dupl
         - gocyclo
         - gosec
+    - path: internal/model/balance\.go
+      linters:
+        - tagliatelle
 
 linters:
   disable-all: true
