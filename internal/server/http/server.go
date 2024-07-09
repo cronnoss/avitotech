@@ -50,19 +50,30 @@ func (s *Server) helperDecode(stream io.ReadCloser, w http.ResponseWriter, data 
 	return nil
 }
 
+func writeResponse(w http.ResponseWriter, _ error, ans *model.Balance, s *Server) {
+	responseBytes, err := json.Marshal(map[string]interface{}{"balance": ans})
+	if err != nil {
+		s.log.Errorf("Can't marshal response: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\": \"Can't process response\"}\n"))
+		return
+	}
+	w.Write(responseBytes)
+}
+
 func (s *Server) GetBalance(w http.ResponseWriter, r *http.Request) {
 	var balance model.Balance
 	if err := s.helperDecode(r.Body, w, &balance); err != nil {
 		return
 	}
-	bal, err := s.app.GetBalance(r.Context(), &balance)
+	ans, err := s.app.GetBalance(r.Context(), &balance)
 	if err != nil {
 		s.log.Errorf("Can't get balance:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't get balance:%v\"}\n", err)))
 		return
 	}
-	w.Write([]byte(fmt.Sprintf("{\"balance\": \"%s\"}\n", bal)))
+	writeResponse(w, err, ans, s)
 }
 
 func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
@@ -70,13 +81,14 @@ func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &balance); err != nil {
 		return
 	}
-	err := s.app.TopUp(r.Context(), &balance)
+	ans, err := s.app.TopUp(r.Context(), balance.UserID, balance.Amount, balance.Currency)
 	if err != nil {
 		s.log.Errorf("Can't Top up:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't Top up:%v\"}\n", err)))
 		return
 	}
+	writeResponse(w, err, ans, s)
 }
 
 func (s *Server) Start(ctx context.Context) error {

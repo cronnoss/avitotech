@@ -46,43 +46,57 @@ func stringNull(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: true}
 }
 
-func (s *Storage) GetBalance(ctx context.Context, b *model.Balance) (decimal.Decimal, error) {
-	var totalAmount decimal.Decimal
-	query := `SELECT SUM(amount) AS total_amount FROM balances WHERE user_id = $1 AND currency = $2 
-                                                 GROUP BY user_id, currency`
-	err := s.db.QueryRowxContext(ctx, query, b.UserID, stringNull(b.Currency)).Scan(&totalAmount)
+func (s *Storage) GetBalance(ctx context.Context, b *model.Balance) (*model.Balance, error) {
+	var ans model.Balance
+	query := `SELECT * FROM balances WHERE user_id = $1 AND currency = $2`
+	err := s.db.QueryRowxContext(ctx, query, b.UserID, stringNull(b.Currency)).
+		Scan(&ans.ID, &ans.UserID, &ans.Amount, &ans.Currency)
 	if err != nil {
-		return decimal.Zero, fmt.Errorf("failed to get balance: %w", err)
+		return nil, fmt.Errorf("failed to get balance: %w", err)
 	}
 
-	return totalAmount, nil
+	return &ans, nil
 }
 
-func (s *Storage) TopUp(ctx context.Context, b *model.Balance) error {
+func (s *Storage) TopUp(
+	ctx context.Context,
+	userID int64,
+	amount decimal.Decimal,
+	currency string,
+	by string,
+) (*model.Balance, error) {
+	var ans model.Balance
+
 	var userExists bool
-	err := s.db.QueryRowxContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", b.UserID).Scan(&userExists)
+	err := s.db.QueryRowxContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", userID).Scan(&userExists)
 	if err != nil {
-		return fmt.Errorf("failed to check user existence: %w", err)
+		return nil, fmt.Errorf("failed to check user existence: %w", err)
 	}
 	if !userExists {
-		return fmt.Errorf("user with ID %d does not exist", b.UserID)
+		return nil, fmt.Errorf("user with ID %d does not exist", userID)
 	}
 
-	query := `INSERT INTO balances (user_id, amount, currency) VALUES ($1, $2, $3) RETURNING id`
-	rows, err := s.db.QueryxContext(ctx, query, b.UserID, b.Amount, stringNull(b.Currency))
+	query := `
+        INSERT INTO balances (user_id, amount, currency) 
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id) DO UPDATE 
+        SET amount = balances.amount + EXCLUDED.amount, 
+            currency = EXCLUDED.currency
+        RETURNING id, user_id, amount, currency`
+	err = s.db.QueryRowxContext(ctx, query, userID, amount, currency).
+		Scan(&ans.ID, &ans.UserID, &ans.Amount, &ans.Currency)
 	if err != nil {
-		return fmt.Errorf("failed to top up: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.Scan(&b.UserID)
-		if err != nil {
-			return fmt.Errorf("failed to rows.Scan: %w", err)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("failed to rows.Err: %w", err)
+		return nil, fmt.Errorf("failed to top up: %w", err)
 	}
 
-	return nil
+	operation := fmt.Sprintf("Top-up by %s %sRUB", by, amount.StringFixed(2))
+	transactionQuery := `
+        INSERT INTO transactions (user_id, amount, currency, operation) 
+        VALUES ($1, $2, $3, $4)`
+	_, err = s.db.ExecContext(ctx, transactionQuery, userID, amount, currency, operation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record transaction: %w", err)
+	}
+
+	return &ans, nil
 }

@@ -50,6 +50,9 @@ issues:
     - path: internal/model/balance\.go
       linters:
         - tagliatelle
+    - path: internal/model/transaction\.go
+      linters:
+        - tagliatelle
 
 linters:
   disable-all: true

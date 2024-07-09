@@ -35,8 +35,8 @@ type Avitotech struct {
 type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
-	GetBalance(context.Context, *model.Balance) (decimal.Decimal, error)
-	TopUp(context.Context, *model.Balance) error
+	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
+	TopUp(context.Context, int64, decimal.Decimal, string, string) (*model.Balance, error)
 }
 
 type Server interface {
@@ -44,34 +44,23 @@ type Server interface {
 	Stop(context.Context) error
 }
 
-func (a *Avitotech) CheckingBalance(b *model.Balance, checkID bool) interface{} {
-	if checkID && b.UserID == 0 {
-		return fmt.Errorf("%w(UserID is zero)", server.ErrUserID)
-	}
-	if b.Currency == "" {
-		return fmt.Errorf("%w(Currency is %v)", server.ErrCurrency, b.Currency)
-	}
-	return nil
-}
+var bankCard = "bank_card"
 
-func (a *Avitotech) GetBalance(ctx context.Context, b *model.Balance) (decimal.Decimal, error) {
-	if err := a.CheckingBalance(b, false); err != nil {
-		return decimal.Zero, err.(error)
-	}
-
+func (a *Avitotech) GetBalance(ctx context.Context, b *model.Balance) (*model.Balance, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return a.storage.GetBalance(ctx, b)
 }
 
-func (a *Avitotech) TopUp(ctx context.Context, b *model.Balance) error {
-	if err := a.CheckingBalance(b, false); err != nil {
-		return err.(error)
-	}
-
+func (a *Avitotech) TopUp(
+	ctx context.Context,
+	userID int64,
+	amount decimal.Decimal,
+	cur string,
+) (*model.Balance, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.TopUp(ctx, b)
+	return a.storage.TopUp(ctx, userID, amount, cur, bankCard)
 }
 
 func (a *Avitotech) Close(ctx context.Context) error {
