@@ -85,3 +85,39 @@ func (s *Storage) TopUp(ctx context.Context, userID int64, amount decimal.Decima
 
 	return &ans, nil
 }
+
+func (s *Storage) GetTransactions(ctx context.Context, userID int64) ([]model.Transaction, error) {
+	var ans []model.Transaction
+
+	// sorted from oldest to newest
+	query := `SELECT * FROM transactions WHERE user_id = $1`
+	err := s.db.SelectContext(ctx, &ans, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions: %w", err)
+	}
+	return ans, nil
+}
+
+func (s *Storage) GetTransactionsByDate(ctx context.Context, userID int64) ([]model.Transaction, error) {
+	var ans []model.Transaction
+
+	// sorted from newest to oldest
+	query := `SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC`
+	err := s.db.SelectContext(ctx, &ans, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions: %w", err)
+	}
+	return ans, nil
+}
+
+func (s *Storage) GetTransactionsByAmount(ctx context.Context, userID int64) ([]model.Transaction, error) {
+	var ans []model.Transaction
+
+	// sorted from highest to lowest
+	query := `SELECT * FROM transactions WHERE user_id = $1 ORDER BY amount DESC`
+	err := s.db.SelectContext(ctx, &ans, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions: %w", err)
+	}
+	return ans, nil
+}

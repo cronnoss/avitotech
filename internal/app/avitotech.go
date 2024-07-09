@@ -38,6 +38,9 @@ type Storage interface {
 	Close(context.Context) error
 	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
 	TopUp(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
+	GetTransactions(context.Context, int64) ([]model.Transaction, error)
+	GetTransactionsByDate(context.Context, int64) ([]model.Transaction, error)
+	GetTransactionsByAmount(context.Context, int64) ([]model.Transaction, error)
 }
 
 type Server interface {
@@ -57,6 +60,19 @@ func (a *Avitotech) TopUp(ctx context.Context, userID int64, amount decimal.Deci
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return a.storage.TopUp(ctx, userID, amount, bankCard)
+}
+
+func (a *Avitotech) GetTransactions(ctx context.Context, userID int64, sort string) ([]model.Transaction, error) {
+	switch sort {
+	case "":
+		return a.storage.GetTransactions(ctx, userID)
+	case "date":
+		return a.storage.GetTransactionsByDate(ctx, userID)
+	case "amount":
+		return a.storage.GetTransactionsByAmount(ctx, userID)
+	default:
+		return nil, errors.New("wrong sort")
+	}
 }
 
 func (a *Avitotech) ConvertBalance(ctx context.Context, b *model.Balance, currency string) (*model.Balance, error) {

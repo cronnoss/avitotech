@@ -104,6 +104,31 @@ func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, err, ans, s)
 }
 
+func (s *Server) GetTransactions(w http.ResponseWriter, r *http.Request) {
+	var balance model.Balance
+	if err := s.helperDecode(r.Body, w, &balance); err != nil {
+		return
+	}
+
+	sort := r.URL.Query().Get("sort")
+
+	ans, err := s.app.GetTransactions(r.Context(), balance.UserID, sort)
+	if err != nil {
+		s.log.Errorf("Can't get transactions:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't get transactions:%v\"}\n", err)))
+		return
+	}
+	responseBytes, err := json.Marshal(map[string]interface{}{"transactions": ans})
+	if err != nil {
+		s.log.Errorf("Can't marshal response: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\": \"Can't process response\"}\n"))
+		return
+	}
+	w.Write(responseBytes)
+}
+
 func (s *Server) Start(ctx context.Context) error {
 	addr := net.JoinHostPort(s.host, s.port)
 	midLogger := NewMiddlewareLogger()
@@ -123,10 +148,10 @@ func (s *Server) Start(ctx context.Context) error {
 
 	mux.Handle("/balance", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.GetBalance))))
-	/*mux.Handle("/transaction", midLogger.setCommonHeadersMiddleware(
-	midLogger.loggingMiddleware(http.HandlerFunc(s.GetTransactions))))*/
 	mux.Handle("/top-up", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.TopUp))))
+	mux.Handle("/transaction", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.GetTransactions))))
 	/*mux.Handle("/debit", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.Debit))))
 	mux.Handle("/transfer", midLogger.setCommonHeadersMiddleware(
