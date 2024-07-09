@@ -13,8 +13,7 @@ CREATE TABLE balances
 (
     id       SERIAL PRIMARY KEY,
     user_id  INT REFERENCES users (id) ON DELETE CASCADE UNIQUE,
-    amount   NUMERIC(15, 2) NOT NULL,
-    currency VARCHAR(10) NOT NULL
+    amount NUMERIC(15, 2) NOT NULL
 );
 
 CREATE TABLE transactions
@@ -22,7 +21,6 @@ CREATE TABLE transactions
     id        SERIAL PRIMARY KEY,
     user_id   INT REFERENCES users (id) ON DELETE CASCADE,
     amount    NUMERIC(15, 2) NOT NULL,
-    currency  VARCHAR(10)    NOT NULL,
     operation VARCHAR(255)   NOT NULL,
     date      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,7 +30,6 @@ CREATE TABLE transfer_results
     from_user_id INT REFERENCES users (id) ON DELETE CASCADE,
     to_user_id   INT REFERENCES users (id) ON DELETE CASCADE,
     amount       NUMERIC(15, 2) NOT NULL,
-    currency VARCHAR(10) NOT NULL,
     status       VARCHAR(50)    NOT NULL,
     PRIMARY KEY (from_user_id, to_user_id, status)
 );

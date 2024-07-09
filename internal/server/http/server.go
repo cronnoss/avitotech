@@ -66,12 +66,25 @@ func (s *Server) GetBalance(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &balance); err != nil {
 		return
 	}
+
+	currency := r.URL.Query().Get("currency")
+
 	ans, err := s.app.GetBalance(r.Context(), &balance)
 	if err != nil {
 		s.log.Errorf("Can't get balance:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't get balance:%v\"}\n", err)))
 		return
+	}
+
+	if currency != "" {
+		ans, err = s.app.ConvertBalance(r.Context(), ans, currency)
+		if err != nil {
+			s.log.Errorf("Can't convert balance:%v\n", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't convert balance:%v\"}\n", err)))
+			return
+		}
 	}
 	writeResponse(w, err, ans, s)
 }
@@ -81,7 +94,7 @@ func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
 	if err := s.helperDecode(r.Body, w, &balance); err != nil {
 		return
 	}
-	ans, err := s.app.TopUp(r.Context(), balance.UserID, balance.Amount, balance.Currency)
+	ans, err := s.app.TopUp(r.Context(), balance.UserID, balance.Amount)
 	if err != nil {
 		s.log.Errorf("Can't Top up:%v\n", err)
 		w.WriteHeader(http.StatusBadRequest)

@@ -19,7 +19,7 @@ type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
 	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
-	TopUp(context.Context, int64, decimal.Decimal, string, string) (*model.Balance, error)
+	TopUp(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
 }
 
 func NewStorage(conf Conf) Storage {

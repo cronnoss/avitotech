@@ -28,10 +28,11 @@ type Logger interface {
 type Application interface {
 	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
 	// GetTransactions(ctx context.Context, userID int64, currency string, sort string) ([]model.Transaction, error)
-	TopUp(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
+	TopUp(context.Context, int64, decimal.Decimal) (*model.Balance, error)
 	// Debit(ctx context.Context, userID int64, amount decimal.Decimal, currency string) error
 	// Transfer(ctx context.Context,
 	// 	fromUserID int64, toUserID int64, amount decimal.Decimal, currency string) (model.TransferResult, error)
+	ConvertBalance(context.Context, *model.Balance, string) (*model.Balance, error)
 }
 
 func Exitfail(msg string) {

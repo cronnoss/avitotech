@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -36,7 +37,7 @@ type Storage interface {
 	Connect(context.Context) error
 	Close(context.Context) error
 	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
-	TopUp(context.Context, int64, decimal.Decimal, string, string) (*model.Balance, error)
+	TopUp(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
 }
 
 type Server interface {
@@ -52,15 +53,52 @@ func (a *Avitotech) GetBalance(ctx context.Context, b *model.Balance) (*model.Ba
 	return a.storage.GetBalance(ctx, b)
 }
 
-func (a *Avitotech) TopUp(
-	ctx context.Context,
-	userID int64,
-	amount decimal.Decimal,
-	cur string,
-) (*model.Balance, error) {
+func (a *Avitotech) TopUp(ctx context.Context, userID int64, amount decimal.Decimal) (*model.Balance, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	return a.storage.TopUp(ctx, userID, amount, cur, bankCard)
+	return a.storage.TopUp(ctx, userID, amount, bankCard)
+}
+
+func (a *Avitotech) ConvertBalance(ctx context.Context, b *model.Balance, currency string) (*model.Balance, error) {
+	type Currency struct {
+		Base  string `json:"base"` // base = EUR
+		Rates struct {
+			Rub float64 `json:"RUB"`
+			Usd float64 `json:"USD"`
+		} `json:"rates"`
+	}
+
+	var cur Currency
+
+	endpoint := "http://api.exchangeratesapi.io/v1/latest?access_key=e532701035ed3f4040b2660e6b7a8a3d"
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&cur)
+	if err != nil {
+		return nil, errors.New("failed to decode response from exchangeratesapi.io")
+	}
+
+	// balance in eur, because it is the base in api.exchangeratesapi.io
+	beur := b.Amount.Div(decimal.NewFromFloat(cur.Rates.Rub)) // b.Amount / cur.Rates.Rub
+
+	switch currency {
+	case "USD":
+		busd := beur.Mul(decimal.NewFromFloat(cur.Rates.Usd)) // beur * cur.Rates.Usd
+		b.Amount = busd
+	case "EUR":
+		b.Amount = beur
+	}
+	return b, nil
 }
 
 func (a *Avitotech) Close(ctx context.Context) error {

@@ -2,7 +2,6 @@ package sqlstorage
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/cronnoss/avitotech/internal/model"
@@ -39,18 +38,11 @@ func (s *Storage) Close(ctx context.Context) error {
 	return nil
 }
 
-func stringNull(s string) sql.NullString {
-	if len(s) == 0 {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
-}
-
 func (s *Storage) GetBalance(ctx context.Context, b *model.Balance) (*model.Balance, error) {
 	var ans model.Balance
-	query := `SELECT * FROM balances WHERE user_id = $1 AND currency = $2`
-	err := s.db.QueryRowxContext(ctx, query, b.UserID, stringNull(b.Currency)).
-		Scan(&ans.ID, &ans.UserID, &ans.Amount, &ans.Currency)
+	query := `SELECT * FROM balances WHERE user_id = $1`
+	err := s.db.QueryRowxContext(ctx, query, b.UserID).
+		Scan(&ans.ID, &ans.UserID, &ans.Amount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance: %w", err)
 	}
@@ -58,13 +50,7 @@ func (s *Storage) GetBalance(ctx context.Context, b *model.Balance) (*model.Bala
 	return &ans, nil
 }
 
-func (s *Storage) TopUp(
-	ctx context.Context,
-	userID int64,
-	amount decimal.Decimal,
-	currency string,
-	by string,
-) (*model.Balance, error) {
+func (s *Storage) TopUp(ctx context.Context, userID int64, amount decimal.Decimal, by string) (*model.Balance, error) {
 	var ans model.Balance
 
 	var userExists bool
@@ -77,23 +63,22 @@ func (s *Storage) TopUp(
 	}
 
 	query := `
-        INSERT INTO balances (user_id, amount, currency) 
-        VALUES ($1, $2, $3)
+        INSERT INTO balances (user_id, amount) 
+        VALUES ($1, $2)
         ON CONFLICT (user_id) DO UPDATE 
-        SET amount = balances.amount + EXCLUDED.amount, 
-            currency = EXCLUDED.currency
-        RETURNING id, user_id, amount, currency`
-	err = s.db.QueryRowxContext(ctx, query, userID, amount, currency).
-		Scan(&ans.ID, &ans.UserID, &ans.Amount, &ans.Currency)
+        SET amount = balances.amount + EXCLUDED.amount
+        RETURNING id, user_id, amount`
+	err = s.db.QueryRowxContext(ctx, query, userID, amount).
+		Scan(&ans.ID, &ans.UserID, &ans.Amount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to top up: %w", err)
 	}
 
 	operation := fmt.Sprintf("Top-up by %s %sRUB", by, amount.StringFixed(2))
 	transactionQuery := `
-        INSERT INTO transactions (user_id, amount, currency, operation) 
-        VALUES ($1, $2, $3, $4)`
-	_, err = s.db.ExecContext(ctx, transactionQuery, userID, amount, currency, operation)
+        INSERT INTO transactions (user_id, amount, operation) 
+        VALUES ($1, $2, $3)`
+	_, err = s.db.ExecContext(ctx, transactionQuery, userID, amount, operation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to record transaction: %w", err)
 	}
