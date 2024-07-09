@@ -38,6 +38,7 @@ type Storage interface {
 	Close(context.Context) error
 	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
 	TopUp(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
+	Debit(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
 	GetTransactions(context.Context, int64) ([]model.Transaction, error)
 	GetTransactionsByDate(context.Context, int64) ([]model.Transaction, error)
 	GetTransactionsByAmount(context.Context, int64) ([]model.Transaction, error)
@@ -48,7 +49,10 @@ type Server interface {
 	Stop(context.Context) error
 }
 
-var bankCard = "bank_card"
+var (
+	purchase = "purchase"
+	bankCard = "bank_card"
+)
 
 func (a *Avitotech) GetBalance(ctx context.Context, b *model.Balance) (*model.Balance, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -60,6 +64,12 @@ func (a *Avitotech) TopUp(ctx context.Context, userID int64, amount decimal.Deci
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	return a.storage.TopUp(ctx, userID, amount, bankCard)
+}
+
+func (a *Avitotech) Debit(ctx context.Context, userID int64, amount decimal.Decimal) (*model.Balance, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	return a.storage.Debit(ctx, userID, amount.Neg(), purchase)
 }
 
 func (a *Avitotech) GetTransactions(ctx context.Context, userID int64, sort string) ([]model.Transaction, error) {

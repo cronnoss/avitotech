@@ -89,21 +89,6 @@ func (s *Server) GetBalance(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, err, ans, s)
 }
 
-func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
-	var balance model.Balance
-	if err := s.helperDecode(r.Body, w, &balance); err != nil {
-		return
-	}
-	ans, err := s.app.TopUp(r.Context(), balance.UserID, balance.Amount)
-	if err != nil {
-		s.log.Errorf("Can't Top up:%v\n", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't Top up:%v\"}\n", err)))
-		return
-	}
-	writeResponse(w, err, ans, s)
-}
-
 func (s *Server) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	var balance model.Balance
 	if err := s.helperDecode(r.Body, w, &balance); err != nil {
@@ -129,6 +114,36 @@ func (s *Server) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseBytes)
 }
 
+func (s *Server) TopUp(w http.ResponseWriter, r *http.Request) {
+	var balance model.Balance
+	if err := s.helperDecode(r.Body, w, &balance); err != nil {
+		return
+	}
+	ans, err := s.app.TopUp(r.Context(), balance.UserID, balance.Amount)
+	if err != nil {
+		s.log.Errorf("Can't Top up:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't Top up:%v\"}\n", err)))
+		return
+	}
+	writeResponse(w, err, ans, s)
+}
+
+func (s *Server) Debit(w http.ResponseWriter, r *http.Request) {
+	var balance model.Balance
+	if err := s.helperDecode(r.Body, w, &balance); err != nil {
+		return
+	}
+	ans, err := s.app.Debit(r.Context(), balance.UserID, balance.Amount)
+	if err != nil {
+		s.log.Errorf("Can't Debit:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't Debit:%v\"}\n", err)))
+		return
+	}
+	writeResponse(w, err, ans, s)
+}
+
 func (s *Server) Start(ctx context.Context) error {
 	addr := net.JoinHostPort(s.host, s.port)
 	midLogger := NewMiddlewareLogger()
@@ -150,12 +165,12 @@ func (s *Server) Start(ctx context.Context) error {
 		midLogger.loggingMiddleware(http.HandlerFunc(s.GetBalance))))
 	mux.Handle("/top-up", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.TopUp))))
+	mux.Handle("/debit", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.Debit))))
 	mux.Handle("/transaction", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.GetTransactions))))
-	/*mux.Handle("/debit", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.Debit))))
-	mux.Handle("/transfer", midLogger.setCommonHeadersMiddleware(
-		midLogger.loggingMiddleware(http.HandlerFunc(s.Transfer))))*/
+	/*mux.Handle("/transfer", midLogger.setCommonHeadersMiddleware(
+	midLogger.loggingMiddleware(http.HandlerFunc(s.Transfer))))*/
 
 	s.srv = http.Server{
 		Addr:              addr,

@@ -20,6 +20,7 @@ type Storage interface {
 	Close(context.Context) error
 	GetBalance(context.Context, *model.Balance) (*model.Balance, error)
 	TopUp(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
+	Debit(context.Context, int64, decimal.Decimal, string) (*model.Balance, error)
 	GetTransactions(context.Context, int64) ([]model.Transaction, error)
 	GetTransactionsByDate(context.Context, int64) ([]model.Transaction, error)
 	GetTransactionsByAmount(context.Context, int64) ([]model.Transaction, error)

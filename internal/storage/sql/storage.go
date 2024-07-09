@@ -86,6 +86,51 @@ func (s *Storage) TopUp(ctx context.Context, userID int64, amount decimal.Decima
 	return &ans, nil
 }
 
+func (s *Storage) Debit(ctx context.Context, userID int64, amount decimal.Decimal, by string) (*model.Balance, error) {
+	var ans model.Balance
+
+	var userExists bool
+	err := s.db.QueryRowxContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", userID).Scan(&userExists)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check user existence: %w", err)
+	}
+	if !userExists {
+		return nil, fmt.Errorf("user with ID %d does not exist", userID)
+	}
+
+	balance, err := s.GetBalance(ctx, &model.Balance{UserID: userID})
+	if err != nil {
+		return nil, fmt.Errorf("user has no balance: %w", err)
+	}
+
+	newBalance := balance.Amount.Add(amount) // amount is negative, so we add it
+	if newBalance.LessThan(decimal.Zero) {
+		return nil, fmt.Errorf("insufficient funds")
+	}
+
+	query := `
+		UPDATE balances 
+		SET amount = $2
+		WHERE user_id = $1
+		RETURNING id, user_id, amount`
+	err = s.db.QueryRowxContext(ctx, query, userID, newBalance).
+		Scan(&ans.ID, &ans.UserID, &ans.Amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to debit: %w", err)
+	}
+
+	operation := fmt.Sprintf("Debit by %s %sRUB", by, amount.StringFixed(2))
+	transactionQuery := `
+		INSERT INTO transactions (user_id, amount, operation) 
+		VALUES ($1, $2, $3)`
+	_, err = s.db.ExecContext(ctx, transactionQuery, userID, amount, operation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record transaction: %w", err)
+	}
+
+	return &ans, nil
+}
+
 func (s *Storage) GetTransactions(ctx context.Context, userID int64) ([]model.Transaction, error) {
 	var ans []model.Transaction
 

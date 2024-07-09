@@ -11,9 +11,9 @@ CREATE TABLE users
 
 CREATE TABLE balances
 (
-    id       SERIAL PRIMARY KEY,
-    user_id  INT REFERENCES users (id) ON DELETE CASCADE UNIQUE,
-    amount NUMERIC(15, 2) NOT NULL
+    id      SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users (id) ON DELETE CASCADE UNIQUE,
+    amount  NUMERIC(15, 2) NOT NULL
 );
 
 CREATE TABLE transactions
