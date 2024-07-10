@@ -25,6 +25,8 @@ linters-settings:
           - time
           - net
           - flag
+          - bytes
+          - testing
           - path/filepath
           - github.com/cronnoss/avitotech/internal/logger
           - github.com/cronnoss/avitotech/internal/server
@@ -37,6 +39,7 @@ linters-settings:
           - encoding/json
           - github.com/jackc/pgx/stdlib
           - github.com/shopspring/decimal
+          - github.com/stretchr/testify/require
           - database/sql
 
 issues:
