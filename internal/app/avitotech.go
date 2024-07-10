@@ -52,6 +52,7 @@ type Server interface {
 var (
 	purchase = "purchase"
 	bankCard = "bank_card"
+	transfer = "transfer"
 )
 
 func (a *Avitotech) GetBalance(ctx context.Context, b *model.Balance) (*model.Balance, error) {
@@ -83,6 +84,36 @@ func (a *Avitotech) GetTransactions(ctx context.Context, userID int64, sort stri
 	default:
 		return nil, errors.New("wrong sort")
 	}
+}
+
+func (a *Avitotech) Transfer(ctx context.Context, fromID, toID int64, amount decimal.Decimal) (*model.Balance, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	if amount.LessThanOrEqual(decimal.Zero) {
+		return nil, errors.New("amount must be greater than zero")
+	}
+
+	balance, err := a.storage.GetBalance(ctx, &model.Balance{UserID: fromID})
+	if err != nil {
+		return nil, err
+	}
+
+	if balance.Amount.LessThan(amount) {
+		return nil, errors.New("insufficient funds")
+	}
+
+	_, err = a.storage.Debit(ctx, fromID, amount.Neg(), transfer)
+	if err != nil {
+		return nil, err
+	}
+
+	ans, err := a.storage.TopUp(ctx, toID, amount, transfer)
+	if err != nil {
+		return nil, err
+	}
+
+	return ans, nil
 }
 
 func (a *Avitotech) ConvertBalance(ctx context.Context, b *model.Balance, currency string) (*model.Balance, error) {

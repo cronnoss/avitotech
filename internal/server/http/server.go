@@ -144,6 +144,21 @@ func (s *Server) Debit(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, err, ans, s)
 }
 
+func (s *Server) Transfer(w http.ResponseWriter, r *http.Request) {
+	var transfer model.Transfer
+	if err := s.helperDecode(r.Body, w, &transfer); err != nil {
+		return
+	}
+	ans, err := s.app.Transfer(r.Context(), transfer.FromID, transfer.ToID, transfer.Amount)
+	if err != nil {
+		s.log.Errorf("Can't Transfer:%v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Can't Transfer:%v\"}\n", err)))
+		return
+	}
+	writeResponse(w, err, ans, s)
+}
+
 func (s *Server) Start(ctx context.Context) error {
 	addr := net.JoinHostPort(s.host, s.port)
 	midLogger := NewMiddlewareLogger()
@@ -167,10 +182,10 @@ func (s *Server) Start(ctx context.Context) error {
 		midLogger.loggingMiddleware(http.HandlerFunc(s.TopUp))))
 	mux.Handle("/debit", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.Debit))))
+	mux.Handle("/transfer", midLogger.setCommonHeadersMiddleware(
+		midLogger.loggingMiddleware(http.HandlerFunc(s.Transfer))))
 	mux.Handle("/transaction", midLogger.setCommonHeadersMiddleware(
 		midLogger.loggingMiddleware(http.HandlerFunc(s.GetTransactions))))
-	/*mux.Handle("/transfer", midLogger.setCommonHeadersMiddleware(
-	midLogger.loggingMiddleware(http.HandlerFunc(s.Transfer))))*/
 
 	s.srv = http.Server{
 		Addr:              addr,

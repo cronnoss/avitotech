@@ -53,6 +53,9 @@ issues:
     - path: internal/model/transaction\.go
       linters:
         - tagliatelle
+    - path: internal/model/transfer\.go
+      linters:
+        - tagliatelle
     - path: internal/app/avitotech\.go
       linters:
         - tagliatelle
