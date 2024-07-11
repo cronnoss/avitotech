@@ -8,6 +8,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.9.0
+	github.com/zhashkevych/go-sqlxmock v1.5.2-0.20201023121933-f973d0041cfc
 	golang.org/x/sync v0.7.0
 )
 

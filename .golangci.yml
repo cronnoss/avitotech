@@ -40,6 +40,7 @@ linters-settings:
           - github.com/jackc/pgx/stdlib
           - github.com/shopspring/decimal
           - github.com/stretchr/testify/require
+          - github.com/zhashkevych/go-sqlxmock
           - database/sql
 
 issues:
