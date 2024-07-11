@@ -1,0 +1,46 @@
+version: "3"
+
+volumes:
+  pgdata:
+
+services:
+
+  db:
+    image: postgres
+    hostname: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: avitotech
+    healthcheck:
+      test: [ "CMD-SHELL", "/usr/bin/pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ../migrations/:/migrations
+    command: [ "-path", "/migrations/", "-database",  "postgresql://postgres:postgres@postgres:5432/avitotech?sslmode=disable", "up" ]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  avitotech:
+    image: avitotech:develop
+    hostname: avitotech
+    restart: always
+    ports:
+      - "8090:8090"
+    depends_on:
+      db:
+        condition: service_healthy
+    build:
+      context: ../
+      dockerfile: ./build/avitotech/Dockerfile

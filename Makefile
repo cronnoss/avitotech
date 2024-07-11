@@ -17,6 +17,13 @@ help:
 	@echo
 	@echo ${Green}"make build"${Color_Off}" to build application"
 	@echo ${Green}"make run"${Color_Off}" to run avitotech"
+	@echo
+	@echo ${Red}"Or use docker-compose:"
+	@echo ${Green}"make up"${Color_Off}" to run docker-compose"
+	@echo ${Green}"make down"${Color_Off}" to stop docker-compose"
+	@echo ${Green}"make destroy"${Color_Off}" to stop docker-compose and remove volumes"
+	@echo
+	@echo ${Green}"make test"${Color_Off}" to run unit tests"
 
 build: build-avitotech
 
@@ -25,6 +32,17 @@ build-avitotech:
 
 run: build-avitotech
 	$(BIN_AVITOTECH) -config ./configs/config.toml
+
+build-img-avitotech:
+	docker build \
+		--build-arg=LDFLAGS="$(LDFLAGS)" \
+		-t $(DOCKER_IMG1) \
+		-f build/avitotech/Dockerfile .
+
+build-img: build-img-avitotech
+
+run-img: build-img
+	docker run $(DOCKER_IMG)
 
 version: build
 	$(BIN_AVITOTECH) version
